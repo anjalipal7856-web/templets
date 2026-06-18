@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResearchPaper Builder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #334155;
+            --border-color: rgba(128,128,128,0.2);
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar Layout */
+        .sidebar { width: 320px; background: var(--card-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 24px; overflow-y: auto; }
+        .sidebar h2 { color: var(--primary-color); font-size: 22px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .sidebar .caption { font-size: 12px; color: #64748b; margin-bottom: 24px; }
+        .sidebar-divider { height: 1px; background: var(--border-color); margin: 16px 0; }
+        .progress-container { margin-bottom: 16px; }
+        .progress-bar-bg { background: #e2e8f0; height: 8px; border-radius: 4px; width: 100%; overflow: hidden; margin-top: 8px;}
+        .progress-bar-fill { background: var(--primary-color); height: 100%; width: 0%; transition: width 0.3s ease; }
+        .workflow-step { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 8px; font-weight: 500; }
+        
+        /* Token Saving Tips */
+        .expander { border: 1px solid var(--border-color); border-radius: 8px; margin-top: 12px; overflow: hidden; }
+        .expander-header { background: #f1f5f9; padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; }
+        .expander-content { padding: 12px; font-size: 12px; color: #475569; line-height: 1.5; display: none; }
+        
+        /* Main Workspace Panel */
+        .main-content { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+        .header-banner { padding: 20px 40px; background: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+        .tabs-nav { display: flex; background: #e2e8f0; padding: 4px; gap: 4px; overflow-x: auto; white-space: nowrap; }
+        .tab-btn { padding: 10px 16px; border: none; background: transparent; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; color: #475569; transition: all 0.2s; }
+        .tab-btn.active { background: var(--card-bg); color: var(--primary-color); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        .tab-pane { flex: 1; padding: 40px; overflow-y: auto; display: none; }
+        .tab-pane.active { display: block; }
+        
+        /* Cards */
+        .card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        h3 { font-size: 18px; color: #0f172a; margin-bottom: 16px; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; color: #334155; outline: none; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(30,58,138,0.1); }
+        .field-caption { font-size: 12px; color: #64748b; margin-top: 4px; display: block; }
+        .row { display: flex; gap: 16px; margin-bottom: 16px; }
+        .col { flex: 1; }
+        
+        /* Buttons */
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; gap: 8px;}
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        
+        /* Functional Lists */
+        .item-list-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; }
+        .status-box { padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 12px; font-weight: 500; }
+        .status-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .status-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        
+        /* Grid/Tables UI */
+        .custom-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        .custom-table th, .custom-table td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 13px; }
+        .custom-table th { background: #f1f5f9; font-weight: 600; }
+        pre { background: #1e293b; color: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: monospace; font-size: 13px; margin-top: 12px; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>📄 ResearchPaper</h2>
+        <div class="caption">Research materials &rarr; LaTeX + Overleaf ZIP.</div>
+        
+        <div class="sidebar-divider"></div>
+        
+        <div class="progress-container">
+            <label style="margin-bottom:0;">Workflow Progress</label>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar"></div></div>
+        </div>
+        <div id="workflowStepsList"></div>
+        
+        <div class="sidebar-divider"></div>
+        
+        <div class="form-group">
+            <label>Gemini API</label>
+            <input type="password" id="sidebarApiKey" placeholder="Paste session API key..." onchange="updateApiKey(this.value)">
+            <div id="apiKeyStatus" class="status-box status-warning" style="margin-top:10px; padding:6px 10px; font-size:12px;">No API key set</div>
+            <div class="field-caption" id="apiCallsCounter">Gemini calls made this session: 0</div>
+            <div class="field-caption" id="apiCallsSavedCounter">Calls saved by reusing cache: 0</div>
+        </div>
+        
+        <div class="sidebar-divider"></div>
+        
+        <div class="expander">
+            <div class="expander-header" onclick="toggleExpander(this)">💡 Token-Saving Tips <span>&#9662;</span></div>
+            <div class="expander-content">
+                • Fill in Research Content fully before generating AI sections.<br>
+                • Click Use Cached instead of Regenerate when a result already looks good.<br>
+                • Generate sections one at a time -- you rarely need all six at once.<br>
+                • Keep notes concise; shorter input means cheaper, faster calls.<br>
+                • The app never resends your whole paper, only the section you're working on.
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header-banner">
+            <h1 style="font-size: 24px; color: #0f172a;">ResearchPaper Builder</h1>
+            <p style="font-size: 14px; color: #64748b; margin-top:4px;">Convert research materials into a journal-formatted LaTeX paper and Overleaf-ready ZIP package.</p>
+        </div>
+        
+        <div class="tabs-nav" id="tabsNav"></div>
+        
+        <div id="tabPanes"></div>
+    </div>
+
+    <script>
+        // System Unified Application State Parity Object
+        let state = {
+            paper_info: { title: "", keywords: "", target_journal: "", page_limit: 8, char_limit: 0, citation_style: "IEEE" },
+            authors: [],
+            references: [],
+            figures: [],
+            tables: [],
+            case_studies: [],
+            experiment: { dataset: "", tools: "", environment: "", hardware: "", metrics: "", procedure: "" },
+            content: { problem_statement: "", objectives: "", methodology: "", results: "", discussion_notes: "", conclusion_notes: "", future_work: "", limitations: "" },
+            generated: { research_analysis: null, abstract: "", introduction: "", methodology_refined: "", discussion: "", conclusion: "" },
+            api_calls_made: 0,
+            api_calls_saved: 0,
+            api_key: "",
+            review_viewed: false,
+            zip_generated: false
+        };
+
+        const workflowLabels = ["Paper Info", "Authors", "Research Content", "References", "Figures", "Tables", "Case Studies", "Experiment", "AI Generation", "AI Review", "Generate & Export"];
+
+        window.onload = function() {
+            initLayout();
+            renderAll();
+        };
+
+        function initLayout() {
+            const nav = document.getElementById("tabsNav");
+            const panes = document.getElementById("tabPanes");
+            
+            workflowLabels.forEach((label, idx) => {
+                let btn = document.createElement("button");
+                btn.className = `tab-btn ${idx === 0 ? 'active' : ''}`;
+                btn.id = `tab-btn-${idx}`;
+                btn.innerText = label;
+                btn.onclick = () => switchTab(idx);
+                nav.appendChild(btn);
+                
+                let pane = document.createElement("div");
+                pane.className = `tab-pane ${idx === 0 ? 'active' : ''}`;
+                pane.id = `tab-pane-${idx}`;
+                panes.appendChild(pane);
+            });
+        }
+
+        function switchTab(index) {
+            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+            document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+            document.getElementById(`tab-btn-${index}`).classList.add("active");
+            document.getElementById(`tab-pane-${index}`).classList.add("active");
+            if(index === 9) { state.review_viewed = true; updateProgress(); }
+            if(index === 10) { triggerLivePreview(); }
+        }
+
+        function toggleExpander(el) {
+            let content = el.nextElementSibling;
+            content.style.display = content.style.display === "block" ? "none" : "block";
+        }
+
+        function updateApiKey(val) {
+            state.api_key = val;
+            let indicator = document.getElementById("apiKeyStatus");
+            if(val) {
+                indicator.className = "status-box status-success";
+                indicator.innerText = "API key detected";
+            } else {
+                indicator.className = "status-box status-warning";
+                indicator.innerText = "No API key set";
+            }
+        }
+
+        function getWordCount(text) {
+            return text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+        }
+
+        function updateProgress() {
+            let steps = {
+                "Paper Info": !!(state.paper_info.title && state.paper_info.keywords),
+                "Authors": state.authors.length > 0,
+                "Research Content": !!(state.content.problem_statement && state.content.methodology),
+                "References": state.references.length > 0,
+                "Figures": state.figures.length > 0,
+                "Tables": state.tables.length > 0,
+                "Case Studies": state.case_studies.length > 0,
+                "Experiment": !!state.experiment.procedure,
+                "AI Generation": !!(state.generated.abstract || state.generated.introduction),
+                "AI Review": state.review_viewed,
+                "Generate & Export": state.zip_generated
+            };
+
+            let score = 0;
+            let container = document.getElementById("workflowStepsList");
+            container.innerHTML = "";
+            
+            workflowLabels.forEach(label => {
+                let passed = steps[label];
+                if(passed) score++;
+                let d = document.createElement("div");
+                d.className = "workflow-step";
+                d.innerHTML = `<span>${passed ? '✅' : '⬜'}</span> ${label}`;
+                container.appendChild(d);
+            });
+
+            let pct = (score / workflowLabels.length) * 100;
+            document.getElementById("progressBar").style.width = pct + "%";
+            document.getElementById("apiCallsCounter").innerText = `Gemini calls made this session: ${state.api_calls_made}`;
+            document.getElementById("apiCallsSavedCounter").innerText = `Calls saved by reusing cache: ${state.api_calls_saved}`;
+        }
+
+        function renderAll() {
+            updateProgress();
+            renderPaperInfo();
+            renderAuthors();
+            renderResearchContent();
+            renderReferences();
+            renderFigures();
+            renderTables();
+            renderCaseStudies();
+            renderExperiment();
+            renderAIGeneration();
+            renderAIReview();
+        }
+
+        // ============================================================================
+        // STEP COMPONENT RENDERERS
+        // ============================================================================
+        function renderPaperInfo() {
+            let p = document.getElementById("tab-pane-0");
+            p.innerHTML = `
+                <div class="card">
+                    <h3>Step 1 &middot; Paper Information</h3>
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label>Paper Title</label>
+                                <input type="text" id="pi_title" value="${state.paper_info.title}" oninput="state.paper_info.title=this.value; updateProgress();">
+                            </div>
+                            <div class="form-group">
+                                <label>Keywords (comma-separated)</label>
+                                <input type="text" id="pi_keywords" value="${state.paper_info.keywords}" oninput="state.paper_info.keywords=this.value; updateProgress();">
+                            </div>
+                            <div class="form-group">
+                                <label>Target Journal</label>
+                                <input type="text" id="pi_journal" value="${state.paper_info.target_journal}" oninput="state.paper_info.target_journal=this.value;">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label>Citation Style / Template</label>
+                                <select id="pi_style" onchange="state.paper_info.citation_style=this.value;">
+                                    <option value="IEEE" ${state.paper_info.citation_style==='IEEE'?'selected':''}>IEEE</option>
+                                    <option value="ACM" ${state.paper_info.citation_style==='ACM'?'selected':''}>ACM</option>
+                                    <option value="Springer" ${state.paper_info.citation_style==='Springer'?'selected':''}>Springer</option>
+                                    <option value="Elsevier" ${state.paper_info.citation_style==='Elsevier'?'selected':''}>Elsevier</option>
+                                    <option value="MDPI" ${state.paper_info.citation_style==='MDPI'?'selected':''}>MDPI</option>
+                                    <option value="Generic" ${state.paper_info.citation_style==='Generic'?'selected':''}>Generic</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Page Limit</label>
+                                <input type="number" value="${state.paper_info.page_limit}" oninput="state.paper_info.page_limit=parseInt(this.value)||8">
+                            </div>
+                            <div class="form-group">
+                                <label>Character Limit (0 = none)</label>
+                                <input type="number" value="${state.paper_info.char_limit}" oninput="state.paper_info.char_limit=parseInt(this.value)||0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAuthors() {
+            let p = document.getElementById("tab-pane-1");
+            let html = `<div class="card"><h3>Step 2 &middot; Authors</h3><div id="authorsList">`;
+            state.authors.forEach((a, i) => {
+                html += `
+                    <div class="card" style="border-style: dashed; background: #fafafa;">
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group"><label>Author Name</label><input type="text" value="${a.name}" oninput="state.authors(${i}).name=this.value"></div>
+                                <div class="form-group"><label>Affiliation</label><input type="text" value="${a.affiliation}" oninput="state.authors[${i}].affiliation=this.value"></div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group"><label>Department</label><input type="text" value="${a.department}" oninput="state.authors[${i}].department=this.value"></div>
+                                <div class="form-group"><label>Email</label><input type="text" value="${a.email}" oninput="state.authors[${i}].email=this.value"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <input type="checkbox" ${a.corresponding?'checked':''} onchange="state.authors[${i}].corresponding=this.checked"> <label style="display:inline;">Corresponding Author</label>
+                        </div>
+                        <button class="btn btn-danger" onclick="state.authors.splice(${i},1); renderAuthors();">🗑️ Remove Author</button>
+                    </div>`;
+            });
+            html += `</div><button class="btn btn-primary" onclick="state.authors.push({name:'',affiliation:'',department:'',email:'',corresponding:false}); renderAuthors();">➕ Add Author</button></div>`;
+            p.innerHTML = html;
+        }
+
+        function renderResearchContent() {
+            let p = document.getElementById("tab-pane-2");
+            let fields = [
+                ["problem_statement", "Problem Statement"],
+                ["objectives", "Objectives"],
+                ["methodology", "Methodology"],
+                ["results", "Results"],
+                ["discussion_notes", "Discussion Notes"],
+                ["conclusion_notes", "Conclusion Notes"],
+                ["future_work", "Future Work"],
+                ["limitations", "Limitations"]
+            ];
+            let html = `<div class="card"><h3>Step 3 &middot; Research Content</h3>`;
+            fields.forEach(f => {
+                html += `
+                    <div class="form-group">
+                        <label>${f[1]}</label>
+                        <textarea rows="4" oninput="state.content['${f[0]}']=this.value; document.getElementById('wc_${f[0]}').innerText='Word count: '+getWordCount(this.value); updateProgress();">${state.content[f[0]]}</textarea>
+                        <span class="field-caption" id="wc_${f[0]}">Word count: ${getWordCount(state.content[f[0]])}</span>
+                    </div>`;
+            });
+            html += `</div>`;
+            p.innerHTML = html;
+        }
+
+        function renderReferences() {
+            let p = document.getElementById("tab-pane-3");
+            p.innerHTML = `
+                <div class="card">
+                    <h3>Step 4 &middot; References</h3>
+                    <div class="row" style="margin-bottom:20px;">
+                        <button class="btn btn-secondary" onclick="setRefMode('pdf')">PDF Upload</button>
+                        <button class="btn btn-secondary" onclick="setRefMode('doi')">DOI Entry</button>
+                        <button class="btn btn-secondary" onclick="setRefMode('url')">URL Entry</button>
+                        <button class="btn btn-secondary" onclick="setRefMode('bib')">BibTeX Upload</button>
+                    </div>
+                    <div id="refFormContainer" style="margin-bottom:20px;"></div>
+                    <div id="currentRefsList"></div>
+                </div>`;
+            setRefMode('pdf');
+            refreshRefsList();
+        }
+
+        function setRefMode(mode) {
+            let c = document.getElementById("refFormContainer");
+            if(mode === 'pdf') {
+                c.innerHTML = `
+                    <label>Upload reference PDF</label>
+                    <input type="file" id="refPdfFile" accept=".pdf" onchange="handlePdfUpload(this)">
+                    <div id="pdfLoadingStatus"></div>
+                    <div id="pdfFields" style="display:none; margin-top:15px;">
+                        <div class="form-group"><label>Title</label><input type="text" id="pdfRefTitle"></div>
+                        <div class="form-group"><label>Authors</label><input type="text" id="pdfRefAuthors"></div>
+                        <div class="form-group"><label>Year</label><input type="text" id="pdfRefYear"></div>
+                        <button class="btn btn-primary" onclick="addPdfRef()">Add Reference from PDF</button>
+                    </div>`;
+            } else if(mode === 'doi') {
+                c.innerHTML = `
+                    <div class="form-group"><label>DOI</label><input type="text" id="doiVal"></div>
+                    <div class="form-group"><label>Title</label><input type="text" id="doiTitle"></div>
+                    <div class="form-group"><label>Authors</label><input type="text" id="doiAuthors"></div>
+                    <div class="form-group"><label>Year</label><input type="text" id="doiYear"></div>
+                    <div class="form-group"><label>Journal / Venue</label><input type="text" id="doiVenue"></div>
+                    <button class="btn btn-primary" onclick="addManualRef('doi')">Add DOI Reference</button>`;
+            } else if(mode === 'url') {
+                c.innerHTML = `
+                    <div class="form-group"><label>URL</label><input type="text" id="urlVal"></div>
+                    <div class="form-group"><label>Title</label><input type="text" id="urlTitle"></div>
+                    <div class="form-group"><label>Authors</label><input type="text" id="urlAuthors"></div>
+                    <div class="form-group"><label>Year</label><input type="text" id="urlYear"></div>
+                    <button class="btn btn-primary" onclick="addManualRef('url')">Add URL Reference</button>`;
+            } else if(mode === 'bib') {
+                c.innerHTML = `
+                    <label>Upload .bib file</label>
+                    <input type="file" accept=".bib" onchange="handleBibUpload(this)">`;
+            }
+        }
+
+        async function handlePdfUpload(input) {
+            if(!input.files.length) return;
+            let status = document.getElementById("pdfLoadingStatus");
+            status.innerText = "Extracting text and metadata structures...";
+            let fd = new FormData();
+            fd.append("file", input.files[0]);
+            
+            let res = await fetch("/api/extract_pdf", { method: "POST", body: fd });
+            let data = await res.json();
+            status.innerText = "";
+            if(data.error) { alert(data.error); return; }
+            
+            document.getElementById("pdfFields").style.display = "block";
+            document.getElementById("pdfRefTitle").value = data.title || "";
+            document.getElementById("pdfRefAuthors").value = data.author || "";
+        }
+
+        function addPdfRef() {
+            state.references.push({
+                key: 'ref' + (state.references.length + 1),
+                entry_type: 'article',
+                title: document.getElementById("pdfRefTitle").value,
+                authors: document.getElementById("pdfRefAuthors").value,
+                year: document.getElementById("pdfRefYear").value,
+                venue: "", doi: "", url: "", source_type: "pdf"
+            });
+            refreshRefsList();
+        }
+
+        function addManualRef(type) {
+            let key = 'ref' + (state.references.length + 1);
+            if(type === 'doi') {
+                state.references.push({
+                    key: key, entry_type: 'article',
+                    title: document.getElementById("doiTitle").value,
+                    authors: document.getElementById("doiAuthors").value,
+                    year: document.getElementById("doiYear").value,
+                    venue: document.getElementById("doiVenue").value,
+                    doi: document.getElementById("doiVal").value,
+                    url: "", source_type: "doi"
+                });
+            } else {
+                state.references.push({
+                    key: key, entry_type: 'misc',
+                    title: document.getElementById("urlTitle").value,
+                    authors: document.getElementById("urlAuthors").value,
+                    year: document.getElementById("urlYear").value,
+                    venue: "", doi: "",
+                    url: document.getElementById("urlVal").value,
+                    source_type: "url"
+                });
+            }
+            refreshRefsList();
+        }
+
+        async function handleBibUpload(input) {
+            if(!input.files.length) return;
+            let fd = new FormData();
+            fd.append("file", input.files[0]);
+            let res = await fetch("/api/parse_bibtex", { method: "POST", body: fd });
+            let data = await res.json();
+            if(data.error) { alert(data.error); return; }
+            state.references.push(...data.entries);
+            refreshRefsList();
+        }
+
+        function refreshRefsList() {
+            let container = document.getElementById("currentRefsList");
+            container.innerHTML = `<h4>Current References (${state.references.length})</h4>`;
+            state.references.forEach((r, i) => {
+                container.innerHTML += `
+                    <div class="item-list-row">
+                        <div><strong>${r.key}</strong> &mdash; ${r.title || '(untitled)'} (${r.year || 'n.d.'}) [<em>${r.source_type}</em>]</div>
+                        <button class="btn btn-danger" style="padding:4px 8px;" onclick="state.references.splice(${i},1); refreshRefsList();">🗑️</button>
+                    </div>`;
+            });
+            updateProgress();
+        }
+
+        function renderFigures() {
+            let p = document.getElementById("tab-pane-4");
+            p.innerHTML = `
+                <div class="card">
+                    <h3>Step 5 &middot; Figures and Charts</h3>
+                    <div class="form-group">
+                        <label>Upload figure asset</label>
+                        <input type="file" id="figAssetFile" accept="image/*">
+                    </div>
+                    <div class="form-group"><label>Figure Title</label><input type="text" id="figTitle"></div>
+                    <div class="form-group"><label>Figure Caption</label><textarea id="figCaption" rows="2"></textarea></div>
+                    <button class="btn btn-primary" onclick="addFigureAsset()">Add Figure</button>
+                    <div id="figuresGrid" style="margin-top:20px;"></div>
+                </div>`;
+            refreshFiguresList();
+        }
+
+        function addFigureAsset() {
+            let fileInput = document.getElementById("figAssetFile");
+            if(!fileInput.files.length) { alert("Please attach an image file first"); return; }
+            let file = fileInput.files[0];
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let base64Str = e.target.result.split(",")[1];
+                state.figures.push({
+                    title: document.getElementById("figTitle").value,
+                    caption: document.getElementById("figCaption").value,
+                    number: String(state.figures.length + 1),
+                    filename: file.name,
+                    bytes_b64: base64Str
+                });
+                refreshFiguresList();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function refreshFiguresList() {
+            let container = document.getElementById("figuresGrid");
+            container.innerHTML = `<h4>Current Figures (${state.figures.length})</h4>`;
+            state.figures.forEach((f, i) => {
+                container.innerHTML += `
+                    <div class="item-list-row">
+                        <div><strong>Fig ${f.number}</strong>: ${f.title || f.filename}</div>
+                        <button class="btn btn-danger" style="padding:4px 8px;" onclick="state.figures.splice(${i},1); refreshFiguresList();">Remove</button>
+                    </div>`;
+            });
+            updateProgress();
+        }
+
+        function renderTables() {
+            let p = document.getElementById("tab-pane-5");
+            p.innerHTML = `
+                <div class="card">
+                    <h3>Step 6 &middot; Tables</h3>
+                    <div class="form-group"><label>Table Title</label><input type="text" id="tableTitle"></div>
+                    <div style="margin-bottom:15px;">
+                        <button class="btn btn-secondary" onclick="addTableCol()">Add Column</button>
+                        <button class="btn btn-secondary" onclick="addTableRow()">Add Row</button>
+                    </div>
+                    <table class="custom-table" id="interactiveTable">
+                        <thead><tr id="tableHeadRow"><th>Col 1</th><th>Col 2</th></tr></thead>
+                        <tbody id="tableBody">
+                            <tr><td><input type="text"></td><td><input type="text"></td></tr>
+                        </tbody>
+                    </table>
+                    <button class="btn btn-primary" style="margin-top:15px;" onclick="commitTable()">Add Table to Canvas</button>
+                    <div id="committedTablesContainer" style="margin-top:20px;"></div>
+                </div>`;
+            refreshTablesList();
+        }
+
+        function addTableCol() {
+            let header = document.getElementById("tableHeadRow");
+            let th = document.createElement("th");
+            th.innerText = "Col " + (header.children.length + 1);
+            header.appendChild(th);
+            
+            let rows = document.getElementById("tableBody").children;
+            for(let r of rows) {
+                let td = document.createElement("td");
+                td.innerHTML = '<input type="text">';
+                r.appendChild(td);
+            }
+        }
+
+        function addTableRow() {
+            let body = document.getElementById("tableBody");
+            let colCount = document.getElementById("tableHeadRow").children.length;
+            let tr = document.createElement("tr");
+            for(let i=0; i<colCount; i++) {
+                let td = document.createElement("td");
+                td.innerHTML = '<input type="text">';
+                tr.appendChild(td);
+            }
+            body.appendChild(tr);
+        }
+
+        function commitTable() {
+            let title = document.getElementById("tableTitle").value;
+            if(!title) { alert("Give the table a title first."); return; }
+            
+            let headers = [];
+            for(let th of document.getElementById("tableHeadRow").children) headers.push(th.innerText);
+            
+            let rows = [];
+            for(let tr of document.getElementById("tableBody").children) {
+                let row = [];
+                for(let td of tr.children) row.push(td.querySelector("input").value);
+                rows.push(row);
+            }
+            
+            state.tables.push({ title: title, label: title, headers: headers, rows: rows });
+            renderTables();
+        }
+
+        function refreshTablesList() {
+            let container = document.getElementById("committedTablesContainer");
+            container.innerHTML = `<h4>Current Tables (${state.tables.length})</h4>`;
+            state.tables.forEach((t, i) => {
+                container.innerHTML += `
+                    <div class="card" style="margin-top:10px;">
+                        <strong>${t.title}</strong>
+                        <button class="btn btn-danger" style="float:right; padding:2px 6px;" onclick="state.tables.splice(${i},1); refreshTablesList();">Remove</button>
+                    </div>`;
+            });
+            updateProgress();
+        }
+
+        function renderCaseStudies() {
+            let p = document.getElementById("tab-pane-6");
+            p.innerHTML = `
+                <div class="card">
+                    <h3>Step 7 &middot; Case Studies</h3>
+                    <div class="form-group"><label>Case Study Title</label><input type="text" id="csTitle"></div>
+                    <div class="form-group"><label>Case Study Content</label><textarea id="csContent" rows="6"></textarea></div>
+                    <button class="btn btn-primary" onclick="addTextCaseStudy()">Add Case Study</button>
+                    <div id="caseStudiesContainer" style="margin-top:20px;"></div>
+                </div>`;
+            refreshCaseStudiesList();
+        }
+
+        function addTextCaseStudy() {
+            let title = document.getElementById("csTitle").value;
+            let content = document.getElementById("csContent").value;
+            if(!title || !content) return;
+            state.case_studies.push({ title: title, content: content, source: "text", filename: null });
+            renderCaseStudies();
+        }
+
+        function refreshCaseStudiesList() {
+            let container = document.getElementById("caseStudiesContainer");
+            container.innerHTML = `<h4>Current Case Studies (${state.case_studies.length})</h4>`;
+            state.case_studies.forEach((cs, i) => {
+                container.innerHTML += `
+                    <div class="card" style="margin-top:10px; background:#f8fafc;">
+                        <h5>${cs.title}</h5>
+                        <p style="font-size:12px; margin-top:5px; color:#475569;">${cs.content.substring(0, 150)}...</p>
+                        <button class="btn btn-danger" style="margin-top:8px; padding:2px 6px;" onclick="state.case_studies.splice(${i},1); refreshCaseStudiesList();">Remove</button>
+                    </div>`;
+            });
+            updateProgress();
+        }
+
+        function renderExperiment() {
+            let p = document.getElementById("tab-pane-7");
+            p.innerHTML = `
+                <div class="card">
+                    <h3>Step 8 &middot; Experiment Details</h3>
+                    <div class="form-group"><label>Dataset</label><input type="text" value="${state.experiment.dataset}" oninput="state.experiment.dataset=this.value"></div>
+                    <div class="form-group"><label>Tools</label><input type="text" value="${state.experiment.tools}" oninput="state.experiment.tools=this.value"></div>
+                    <div class="form-group"><label>Environment</label><input type="text" value="${state.experiment.environment}" oninput="state.experiment.environment=this.value"></div>
+                    <div class="form-group"><label>Hardware</label><input type="text" value="${state.experiment.hardware}" oninput="state.experiment.hardware=this.value"></div>
+                    <div class="form-group"><label>Metrics</label><input type="text" value="${state.experiment.metrics}" oninput="state.experiment.metrics=this.value"></div>
+                    <div class="form-group"><label>Procedure</label><textarea rows="5" oninput="state.experiment.procedure=this.value; updateProgress();">${state.experiment.procedure}</textarea></div>
+                </div>`;
+        }
+
+        function renderAIGeneration() {
+            let p = document.getElementById("tab-pane-8");
+            let modules = [
+                ["research_analysis", "🔎 Research Analyzer", "Checks your raw notes for completeness before you generate anything else."],
+                ["abstract", "📝 Abstract Generator", "Capped at 250 words maximum."],
+                ["introduction", "📖 Introduction Generator", "Drafts baseline domain intro context."],
+                ["methodology_refined", "🧪 Methodology Refiner", "Refines technical structure without fabricating steps."],
+                ["discussion", "💬 Discussion Generator", "Aligns results with notes interpretations."],
+                ["conclusion", "🏁 Conclusion Generator", "Summarizes synthesis horizons."]
+            ];
+            
+            let html = `<div class="card"><h3>AI Generation</h3><p class="field-caption" style="margin-bottom:15px;">Each module makes exactly one Gemini call per click, sending only the section of your content it needs.</p>`;
+            modules.forEach(m => {
+                let cached = !!state.generated[m[0]];
+                html += `
+                    <div class="card" style="background:#fafafa;">
+                        <strong>${m[1]}</strong><p style="font-size:12px; color:#64748b; margin-bottom:10px;">${m[2]}</p>
+                        <div style="display:flex; gap:10px; margin-bottom:10px;">
+                            <button class="btn btn-primary" onclick="triggerGeminiCall('${m[0]}')">${cached?'🔄 Regenerate':'▶️ Generate'}</button>
+                            ${cached?`<button class="btn btn-secondary" onclick="state.api_calls_saved++; renderAIGeneration();">✅ Use Cached (saves 1 call)</button>`:''}
+                        </div>
+                        <div id="wrapper_${m[0]}">
+                            ${cached?`<textarea rows="6" onchange="state.generated['${m[0]}']=this.value">${m[0]==='research_analysis'?JSON.stringify(state.generated[m[0]], null, 2):state.generated[m[0]]}</textarea>`:''}
+                        </div>
+                    </div>`;
+            });
+            html += `</div>`;
+            p.innerHTML = html;
+        }
+
+        async function triggerGeminiCall(moduleKey) {
+            let container = document.getElementById("wrapper_" + moduleKey);
+            container.innerHTML = `<div class="status-box status-warning">Calling Google Gemini Pipeline Framework...</div>`;
+            
+            let res = await fetch("/api/call_gemini_module", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ module: moduleKey, state: state })
+            });
+            let data = await res.json();
+            if(data.error) {
+                container.innerHTML = `<div class="status-box status-warning" style="background:#fef2f2; color:#991b1b; border-color:#fca5a5;">${data.error}</div>`;
+                return;
+            }
+            state.generated[moduleKey] = data.result;
+            state.api_calls_made++;
+            renderAIGeneration();
+        }
+
+        function renderAIReview() {
+            let p = document.getElementById("tab-pane-9");
+            let warnings = [];
+            let successes = [];
+            
+            if(!state.paper_info.title) warnings.push("Missing paper title.");
+            if(!state.paper_info.keywords) warnings.push("Missing keywords.");
+            else successes.push("Keywords present.");
+            
+            if(getWordCount(state.content.methodology) < 50) warnings.push("Methodology looks thin (under 50 words).");
+            else successes.push("Methodology has reasonable length.");
+            
+            if(!state.references.length) warnings.push("No bibliography references added yet.");
+            else successes.push(`${state.references.length} reference(s) added.`);
+
+            let html = `<div class="card"><h3>AI Review Panel</h3><p class="field-caption" style="margin-bottom:15px;">Rule-based structural compilation evaluation metrics (Zero API Token overhead).</p>`;
+            warnings.forEach(w => html += `<div class="status-box status-warning">${w}</div>`);
+            successes.forEach(s => html += `<div class="status-box status-success">${s}</div>`);
+            if(!warnings.length) html += `<div class="status-box status-success">🎉 Complete alignment! Structural configuration validation checks passed.</div>`;
+            html += `</div>`;
+            p.innerHTML = html;
+        }
+
+        async function triggerLivePreview() {
+            let p = document.getElementById("tab-pane-10");
+            p.innerHTML = `<div class="card"><h3>Generate Paper & Export</h3><div class="status-box status-warning">Rendering current live canvas contexts...</div></div>`;
+            
+            let res = await fetch("/api/generate_preview", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(state)
+            });
+            let data = await res.json();
+            if(data.error) { p.innerHTML = `<div class="card"><div class="status-box status-warning">${data.error}</div></div>`; return; }
+            
+            p.innerHTML = `
+                <div class="card">
+                    <h3>Generate Paper & Export</h3>
+                    <div class="form-group">
+                        <button class="btn btn-primary" onclick="downloadZipPackage()">📦 Build & Download Overleaf Package ZIP</button>
+                    </div>
+                    <div class="expander" style="margin-top:20px;">
+                        <div class="expander-header" onclick="toggleExpander(this)">Preview main.tex <span>&#9662;</span></div>
+                        <div class="expander-content" style="display:block;"><pre>${data.main_tex}</pre></div>
+                    </div>
+                    <div class="expander" style="margin-top:20px;">
+                        <div class="expander-header" onclick="toggleExpander(this)">Preview references.bib <span>&#9662;</span></div>
+                        <div class="expander-content" style="display:block;"><pre>${data.references_bib}</pre></div>
+                    </div>
+                </div>`;
+        }
+
+        async function downloadZipPackage() {
+            let res = await fetch("/api/download_zip", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(state)
+            });
+            let blob = await res.blob();
+            let link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = "research_paper_package.zip";
+            link.click();
+            state.zip_generated = true;
+            updateProgress();
+        }
+    </script>
+</body>
+</html>
